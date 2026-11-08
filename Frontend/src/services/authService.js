@@ -6,7 +6,7 @@ export {
   storeAuthToken,
 } from './authToken';
 
-const apiBaseUrl = 'https://multimail-mern.onrender.com/'
+const apiBaseUrl = 'https://multimail-mern.onrender.com';
 
 const request = async (endpoint, options = {}) => {
   const { token, ...fetchOptions } = options;

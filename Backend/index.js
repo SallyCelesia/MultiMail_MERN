@@ -16,9 +16,7 @@ const port = Number(process.env.PORT) || 5000;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const storageDirectory = path.join(__dirname, 'data');
 const storagePath = path.join(storageDirectory, 'mail-queue.json');
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => origin.trim());
+const allowedOrigins = ['https://multi-mail-mern.vercel.app', 'http://localhost:5173'];
 
 app.use(
   cors({

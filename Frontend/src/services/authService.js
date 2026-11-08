@@ -6,7 +6,7 @@ export {
   storeAuthToken,
 } from './authToken';
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
+const apiBaseUrl = 'https://multimail-mern.onrender.com/'
 
 const request = async (endpoint, options = {}) => {
   const { token, ...fetchOptions } = options;

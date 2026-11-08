@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, Clock, FileText, Layers, LogOut, Send, Settings, Sliders, Star, X } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, FileText, Layers, LogOut, Send, Settings, Sliders, Star, X } from 'lucide-react';
 import { endAuthSession } from '../../services/authService';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -12,7 +12,6 @@ export const Sidebar = () => {
     setActiveTab,
     starredMessages,
     sentMessages,
-    scheduledMessages,
     drafts,
     openSettings,
     logout,
@@ -70,12 +69,6 @@ export const Sidebar = () => {
       label: 'Sent msgs',
       icon: ArrowRight,
       count: sentMessages.length,
-    },
-    {
-      id: 'scheduled',
-      label: 'Scheduled',
-      icon: Clock,
-      count: scheduledMessages.length,
     },
     {
       id: 'drafts',

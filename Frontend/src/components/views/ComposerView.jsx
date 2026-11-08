@@ -1,20 +1,14 @@
 import { useRef, useState } from 'react';
-import { CalendarClock, Check, FileSpreadsheet, Save, Send, Trash2, X } from 'lucide-react';
+import { Check, FileSpreadsheet, Save, Send, Trash2, X } from 'lucide-react';
 import { readSheet } from 'read-excel-file/browser';
 import { Button } from '../ui/Button';
 import {
-  scheduleBulkEmail,
   sendBulkEmail,
 } from '../../services/mailService';
 import { useAppStore } from '../../store/useAppStore';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_MATCH_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-
-const toLocalDateTimeInput = (date) => {
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return localDate.toISOString().slice(0, 16);
-};
 
 export const ComposerView = () => {
   const {
@@ -24,7 +18,6 @@ export const ComposerView = () => {
     saveAsDraft,
     currentUser,
     recordSentMessages,
-    addScheduledMessage,
     showToast,
     setSmtpReady,
   } = useAppStore();
@@ -36,10 +29,6 @@ export const ComposerView = () => {
   const [fileError, setFileError] = useState('');
   const [hasConfirmedOptIn, setHasConfirmedOptIn] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState(() =>
-    toLocalDateTimeInput(new Date(Date.now() + 60 * 1000)),
-  );
 
   const manualRecipientEntries = composer.recipient
     .split(/[,\s;]+/)
@@ -182,50 +171,6 @@ export const ComposerView = () => {
     setSelectedFileName('');
     setFileError('');
     setHasConfirmedOptIn(false);
-  };
-
-  const handleSchedule = async () => {
-    if (invalidManualRecipients.length > 0) {
-      showToast('error', 'Invalid recipient', 'Remove or correct the invalid email address(es).');
-      return;
-    }
-    if (recipients.length === 0) {
-      showToast('error', 'Recipient required', 'Enter at least one address or choose an .xlsx file.');
-      return;
-    }
-    if (!hasConfirmedOptIn) {
-      showToast('error', 'Confirmation required', 'Confirm that the recipients agreed to receive this email.');
-      return;
-    }
-    if (!scheduledAt || new Date(scheduledAt) <= new Date()) {
-      showToast('error', 'Invalid schedule time', 'Choose a future date and time.');
-      return;
-    }
-
-    setIsSending(true);
-    try {
-      const result = await scheduleBulkEmail({
-        recipients,
-        subject: composer.subject,
-        message: composer.message,
-        confirmedOptIn: hasConfirmedOptIn,
-        scheduledAt: new Date(scheduledAt).toISOString(),
-      });
-      addScheduledMessage(result.scheduledMessage);
-      resetComposer();
-      setImportedRecipients([]);
-      setXlsxEmailCount(0);
-      setSelectedFileName('');
-      setFileError('');
-      setHasConfirmedOptIn(false);
-      setIsScheduleOpen(false);
-      showToast('success', 'Message scheduled', result.scheduledMessage.timestamp);
-    } catch (error) {
-      if (error.status === 428) setSmtpReady(false);
-      showToast('error', 'Schedule failed', error.message);
-    } finally {
-      setIsSending(false);
-    }
   };
 
   const handleSaveDraft = () => {
@@ -431,16 +376,6 @@ export const ComposerView = () => {
             >
               Save as Draft
             </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              icon={CalendarClock}
-              onClick={() => setIsScheduleOpen((open) => !open)}
-              disabled={isSending}
-              className="w-full sm:w-auto"
-            >
-              Schedule
-            </Button>
           </div>
 
           <div className="flex items-center justify-end w-full sm:w-auto">
@@ -454,29 +389,6 @@ export const ComposerView = () => {
             </button>
           </div>
         </div>
-        {isScheduleOpen && (
-          <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end gap-3">
-            <label className="flex-1 text-xs font-semibold text-slate-500">
-              Send at your local time
-              <input
-                type="datetime-local"
-                min={toLocalDateTimeInput(new Date())}
-                value={scheduledAt}
-                onChange={(event) => setScheduledAt(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#091540]"
-              />
-            </label>
-            <Button
-              variant="primary"
-              icon={CalendarClock}
-              onClick={handleSchedule}
-              disabled={isSending}
-              className="w-full sm:w-auto"
-            >
-              {isSending ? 'Scheduling...' : 'Confirm Schedule'}
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );

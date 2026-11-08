@@ -13,7 +13,6 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
-const host = process.env.HOST || '127.0.0.1';
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const storageDirectory = path.join(__dirname, 'data');
 const storagePath = path.join(storageDirectory, 'mail-queue.json');
@@ -421,7 +420,7 @@ const startServer = async () => {
   }
 
   await mongoose.connect(process.env.MONGODB_URI);
-  app.listen(port, host, () => {
+  app.listen(port, () => {
     console.log(`Mail server is running on port ${port}.`);
     scheduleNextDelivery();
   });

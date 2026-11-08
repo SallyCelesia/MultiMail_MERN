@@ -37,7 +37,7 @@ const postMailRequest = async (endpoint, payload) => {
 };
 
 export const sendBulkEmail = (payload) => postMailRequest('/send', payload);
-export const scheduleBulkEmail = (payload) => postMailRequest('/schedule', payload);
+
 
 export const fetchMailMessages = async () => {
   let response;

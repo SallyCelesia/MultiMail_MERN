@@ -18,7 +18,6 @@ export const useAppStore = create((set, get) => ({
       activeTab: 'compose',
       starredMessages: [],
       sentMessages: [],
-      scheduledMessages: [],
       drafts: [],
       composer: { recipient: '', subject: '', message: '', lastSaved: null },
     });

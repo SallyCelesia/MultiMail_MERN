@@ -80,6 +80,7 @@ const smtpSessions = new Map();
 const clearSmtpSession = (sessionId) => {
   const session = smtpSessions.get(sessionId);
   if (session?.cleanupTimer) clearTimeout(session.cleanupTimer);
+  session?.transporter.close();
   smtpSessions.delete(sessionId);
 };
 const hasPendingScheduledMessages = (sessionId) =>
@@ -298,19 +299,32 @@ app.post('/smtp/session', async (req, res) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user: SMTP_USER, pass: password },
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 10_000,
   });
 
   try {
     await transporter.verify();
   } catch (error) {
     console.error('SMTP credential verification failed:', error.code || error.name);
-    return res.status(400).json({
-      error: 'Could not verify the Gmail app password for this account.',
+    transporter.close();
+    const connectionFailure = [
+      'ETIMEDOUT',
+      'ESOCKET',
+      'ECONNECTION',
+      'ENOTFOUND',
+      'EHOSTUNREACH',
+    ].includes(error.code);
+    return res.status(connectionFailure ? 503 : 400).json({
+      error: connectionFailure
+        ? 'The backend could not connect to Gmail SMTP. Check the Render service logs and whether outbound SMTP connections are allowed.'
+        : 'Gmail rejected the credentials or could not verify the account. Confirm the login email and Gmail app password.',
     });
   }
 
   const existingSession = smtpSessions.get(req.user.sessionId);
-  if (existingSession?.cleanupTimer) clearTimeout(existingSession.cleanupTimer);
+  if (existingSession) clearSmtpSession(req.user.sessionId);
   smtpSessions.set(req.user.sessionId, {
     smtpUser: SMTP_USER,
     transporter,

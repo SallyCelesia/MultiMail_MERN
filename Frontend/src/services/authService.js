@@ -14,21 +14,32 @@ const apiBaseUrl = (
 ).replace(/\/+$/, '');
 
 const request = async (endpoint, options = {}) => {
-  const { token, ...fetchOptions } = options;
+  const { token, timeoutMs, ...fetchOptions } = options;
+  const controller = timeoutMs ? new AbortController() : null;
+  const timeoutId = controller
+    ? setTimeout(() => controller.abort(), timeoutMs)
+    : null;
   let response;
   try {
     response = await fetch(`${apiBaseUrl}${endpoint}`, {
       ...fetchOptions,
+      ...(controller ? { signal: controller.signal } : {}),
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...fetchOptions.headers,
       },
     });
-  } catch {
+  } catch (error) {
+    if (timeoutId) clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Gmail verification timed out. Check the backend connection to Gmail and try again.');
+    }
     throw new Error(
       'Could not reach the API. Check the API URL, backend availability, and that this frontend origin is allowed by Backend FRONTEND_ORIGIN.',
     );
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 
   let result;
@@ -65,6 +76,7 @@ export const configureSmtpSession = (password) =>
   request('/smtp/session', {
     method: 'POST',
     token: getStoredAuthToken(),
+    timeoutMs: 30_000,
     body: JSON.stringify({ password }),
   });
 

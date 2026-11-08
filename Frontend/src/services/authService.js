@@ -6,7 +6,12 @@ export {
   storeAuthToken,
 } from './authToken';
 
-const apiBaseUrl = 'https://multimail-mern.onrender.com';
+const apiBaseUrl = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV
+    ? 'http://127.0.0.1:5000'
+    : 'https://multimail-mern.onrender.com')
+).replace(/\/+$/, '');
 
 const request = async (endpoint, options = {}) => {
   const { token, ...fetchOptions } = options;
@@ -21,7 +26,9 @@ const request = async (endpoint, options = {}) => {
       },
     });
   } catch {
-    throw new Error('Could not connect to the server. Check that the backend is running.');
+    throw new Error(
+      'Could not reach the API. Check the API URL, backend availability, and that this frontend origin is allowed by Backend FRONTEND_ORIGIN.',
+    );
   }
 
   let result;

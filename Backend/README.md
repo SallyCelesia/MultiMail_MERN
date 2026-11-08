@@ -29,7 +29,9 @@ SMTP sessions are lost on restart, so schedules dependent on them will fail if
 the server restarts before delivery.
 
 Set `FRONTEND_ORIGIN` to the frontend origin, or a comma-separated list of
-origins, when it differs from `http://localhost:5173`. The server binds to
+origins, including the exact deployed Vercel origin (scheme and hostname, no
+trailing slash). `/health` is a public endpoint for checking that the API is
+running. The server binds to
 `127.0.0.1` by default; add authentication before binding it to a public
 interface. MongoDB stores accounts; message metadata is stored in the ignored
 local `data/mail-queue.json` file. Never deploy without HTTPS, since the app

@@ -16,21 +16,28 @@ const port = Number(process.env.PORT) || 5000;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const storageDirectory = path.join(__dirname, 'data');
 const storagePath = path.join(storageDirectory, 'mail-queue.json');
-const allowedOrigins = ['https://multi-mail-mern.vercel.app', 'http://localhost:5173'];
+const allowedOrigins = (
+  process.env.FRONTEND_ORIGIN ||
+  'https://multi-mail-mern.vercel.app,http://localhost:5173'
+)
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin.replace(/\/+$/, ''))) {
         callback(null, true);
         return;
       }
 
-      callback(new Error('Origin is not allowed by CORS'));
+      callback(null, false);
     },
   }),
 );
 app.use(express.json({ limit: '10mb' }));
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use(requireAuth);
 

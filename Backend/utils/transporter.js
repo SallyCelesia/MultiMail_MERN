@@ -6,7 +6,10 @@ const createTransporter = (email, appPassword) => {
         auth: {
             user: email,
             pass: appPassword
-        }
+        },
+        connectionTimeout: 30_000,
+        greetingTimeout: 30_000,
+        socketTimeout: 60_000
     });
 };
 

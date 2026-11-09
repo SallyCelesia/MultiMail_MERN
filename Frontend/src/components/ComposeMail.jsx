@@ -96,10 +96,15 @@ export default function ComposeMail() {
         <div className="send-row">
           <span className="muted">{recipients.length} recipient(s)</span>
           <button type="submit" disabled={loading}>
-            {loading ? "Sending..." : "Send bulk email"}
+            {loading ? `Sending to ${recipients.length}...` : "Send bulk email"}
           </button>
         </div>
 
+        {loading && (
+          <p className="muted" role="status">
+            Sending to {recipients.length} recipients. This may take a while.
+          </p>
+        )}
         {message && <p className="feedback" role="status">{message}</p>}
       </form>
     </section>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import RecipientUpload from "./RecipientUpload";
 import { useAppContext } from "../AppContext";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_BASE_URL || "https://multimail-mern.onrender.com";
 
 export default function ComposeMail() {
   const [subject, setSubject] = useState("");

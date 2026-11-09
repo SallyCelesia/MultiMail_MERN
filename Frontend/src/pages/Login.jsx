@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAppContext } from "../AppContext";
 import PasswordInput from "../components/PasswordInput";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_BASE_URL || "https://multimail-mern.onrender.com";
 
 export default function Login() {
   const [email, setEmail] = useState("");

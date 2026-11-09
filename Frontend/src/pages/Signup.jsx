@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAppContext } from "../AppContext";
 import PasswordInput from "../components/PasswordInput";
 
-const API = import.meta.env.API_BASE_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function Signup() {
   const [email, setEmail] = useState("");

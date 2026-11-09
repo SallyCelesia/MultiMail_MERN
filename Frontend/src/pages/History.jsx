@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import MailCard from "../components/MailCard";
 import { useAppContext } from "../AppContext";
 
-const API = import.meta.env.API_BASE_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function History() {
   const [mails, setMails] = useState([]);

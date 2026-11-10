@@ -1,4 +1,3 @@
-const User = require("../models/User");
 const Mail = require("../models/Mail");
 const { isValidEmail, isValidSender } = require("../utils/email");
 const { createTransporter, getSmtpConfig } = require("../utils/transporter");
@@ -70,13 +69,7 @@ const sendMail = async (req, res) => {
             });
         }
 
-        const user = await User.findById(req.userId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
         mailRecord = await Mail.create({
-            userId: user._id,
             subject: subject.trim(),
             body,
             recipients: uniqueRecipients.map((email) => ({
@@ -143,7 +136,7 @@ const sendMail = async (req, res) => {
 
 const getHistory = async (req, res) => {
     try {
-        const history = await Mail.find({ userId: req.userId })
+        const history = await Mail.find()
             .sort({ createdAt: -1 })
             .lean();
 

@@ -1,30 +1,8 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAppContext } from "../AppContext";
 
-const API = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-
 export default function Navbar() {
-  const navigate = useNavigate();
-  const email = localStorage.getItem("email") || "";
-  const userName = email.split("@")[0] || "Your account";
-  const { theme, toggleTheme, maxDisplayCount, setMaxDisplayCount, showToast } = useAppContext();
-
-  const logout = async () => {
-    try {
-      const response = await fetch(`${API}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include"
-      });
-      if (!response.ok) throw new Error("Logout request failed");
-    } catch {
-      showToast("Could not log out. Check your connection and try again.", "error");
-      return;
-    }
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("email");
-    navigate("/login");
-  };
+  const { theme, toggleTheme, maxDisplayCount, setMaxDisplayCount } = useAppContext();
 
   return (
     <aside className="sidebar">
@@ -53,14 +31,6 @@ export default function Navbar() {
             <span className={`toggle-track ${theme === "dark" ? "is-dark" : ""}`} aria-hidden="true"><span /></span>
           </button>
         </section>
-        <div className="profile-row">
-          <div className="profile-avatar" aria-hidden="true">{userName.charAt(0).toUpperCase()}</div>
-          <div className="profile-info">
-            <strong title={email}>{userName}</strong>
-            <span title={email}>{email}</span>
-          </div>
-          <button className="logout-button" type="button" onClick={logout}>Log out</button>
-        </div>
       </div>
     </aside>
   );

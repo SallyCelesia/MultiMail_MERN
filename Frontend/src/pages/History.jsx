@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import MailCard from "../components/MailCard";
 import { useAppContext } from "../AppContext";
@@ -10,24 +10,14 @@ export default function History() {
   const [mails, setMails] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const { maxDisplayCount, showToast } = useAppContext();
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await fetch(`${API}/api/mail/history`, {
-          credentials: "include",
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
+        const response = await fetch(`${API}/api/mail/history`);
         const data = await response.json();
 
-        if (response.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("email");
-          navigate("/login");
-          return;
-        }
         if (!response.ok) {
           const errorMessage = data.message || "Unable to fetch history.";
           setMessage(errorMessage);
@@ -45,7 +35,7 @@ export default function History() {
     };
 
     fetchHistory();
-  }, [navigate, showToast]);
+  }, [showToast]);
 
   return (
     <div className="app-shell">

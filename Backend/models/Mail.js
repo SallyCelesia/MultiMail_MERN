@@ -11,12 +11,6 @@ const recipientSchema = new mongoose.Schema({
 }, { _id: false });
 
 const mailSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-        index: true
-    },
     subject: { type: String, required: true },
     body: { type: String, required: true },
     recipients: [recipientSchema],

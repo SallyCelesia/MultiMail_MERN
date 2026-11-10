@@ -28,10 +28,8 @@ export default function ComposeMail() {
     try {
       const response = await fetch(`${API}/api/mail/send`, {
         method: "POST",
-        credentials: "include",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ subject, body, recipients })
       });

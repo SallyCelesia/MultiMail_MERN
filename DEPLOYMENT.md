@@ -11,20 +11,18 @@ Configure these values in the backend Vercel project's environment settings:
 - `NODE_ENV=production`
 - `PORT` — optional locally; Vercel supplies the function port.
 - `MONGODB_URI` — MongoDB connection string.
-- `AUTH_USERNAME` and `AUTH_PASSWORD` — the one allowed login. The backend
-  stores/updates its bcrypt password hash in MongoDB; public signup is disabled.
-  Use at least 6 characters and keep the password within bcrypt's 72-byte limit.
-- `JWT_SECRET` — a private random secret of at least 32 characters.
 - `CLIENT_ORIGIN` — exact frontend origin; comma-separated origins are allowed.
-- `COOKIE_SAME_SITE` — `none` for cross-site frontend/backend deployments;
-  `lax` is the local-development default. `none` requires HTTPS and the backend
-  sets the cookie `Secure` flag automatically in production.
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` — SMTP
   server settings. Use `true` for implicit TLS (usually port 465), or `false`
   for STARTTLS (usually port 587).
 - `MAIL_FROM` — sender accepted by your SMTP provider, e.g.
   `MultiMail <mail@your-verified-domain.com>`.
 - `MAX_CAMPAIGN_RECIPIENTS` — optional integer from 1 to 100 (default 100).
+
+The mail API has no login or authentication. Anyone able to reach it can submit
+campaigns, view shared mail history, and use the configured SMTP sender. Keep
+the API private or deploy it behind network-level access controls if it should
+not be public; `CLIENT_ORIGIN` limits browser origins but is not authentication.
 
 Campaigns are sent using Nodemailer with a connection pool and per-recipient
 delivery status in MongoDB. Vercel Functions have a finite execution duration,
@@ -35,21 +33,13 @@ provider port is blocked, SMTP cannot work from that Vercel deployment; use a
 provider-supported reachable port or deploy the backend on a host that allows
 SMTP egress.
 
-The configured login user is created automatically on its first successful
-login. To create or reset it manually from the backend folder, set
-`MONGODB_URI`, `AUTH_USERNAME`, and `AUTH_PASSWORD` in `Backend/.env`, then run
-`npm run seed:user`. The command upserts the configured account and stores its
-password as a bcrypt hash.
-
 ## Frontend environment
 
 Set `VITE_API_URL` to the backend deployment origin, without a trailing slash,
 for example `https://your-api.vercel.app`. Locally it defaults to
 `http://localhost:5000`.
 
-The JWT is kept in an HTTP-only cookie. For separate Vercel origins, configure
-`CLIENT_ORIGIN` and `COOKIE_SAME_SITE=none`; for local development use
-`COOKIE_SAME_SITE=lax`. The frontend sends credentialed requests to the backend.
+For separate Vercel origins, configure `CLIENT_ORIGIN` with the frontend origin.
 
 ## Local development and SMTP test
 

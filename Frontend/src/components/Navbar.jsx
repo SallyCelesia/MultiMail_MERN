@@ -1,13 +1,26 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAppContext } from "../AppContext";
 
+const API = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 export default function Navbar() {
   const navigate = useNavigate();
   const email = localStorage.getItem("email") || "";
   const userName = email.split("@")[0] || "Your account";
-  const { theme, toggleTheme, maxDisplayCount, setMaxDisplayCount } = useAppContext();
+  const { theme, toggleTheme, maxDisplayCount, setMaxDisplayCount, showToast } = useAppContext();
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      const response = await fetch(`${API}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (!response.ok) throw new Error("Logout request failed");
+    } catch {
+      showToast("Could not log out. Check your connection and try again.", "error");
+      return;
+    }
+
     localStorage.removeItem("token");
     localStorage.removeItem("email");
     navigate("/login");

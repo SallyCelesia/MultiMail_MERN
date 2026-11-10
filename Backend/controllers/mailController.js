@@ -1,12 +1,22 @@
 const User = require("../models/User");
 const Mail = require("../models/Mail");
-const { decrypt } = require("../utils/encryption");
-const createTransporter = require("../utils/transporter");
+const { isValidEmail, isValidSender } = require("../utils/email");
+const { createTransporter, getSmtpConfig } = require("../utils/transporter");
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const getRecipientLimit = () => {
+    const configuredLimit = process.env.MAX_CAMPAIGN_RECIPIENTS || "100";
+    const limit = Number(configuredLimit);
+
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        throw new Error("MAX_CAMPAIGN_RECIPIENTS must be an integer between 1 and 100");
+    }
+
+    return limit;
+};
 
 const sendMail = async (req, res) => {
     let mailRecord;
+    let transporter;
 
     try {
         const { subject, body, recipients } = req.body;
@@ -25,22 +35,45 @@ const sendMail = async (req, res) => {
             recipients
                 .filter((value) => typeof value === "string")
                 .map((value) => value.trim().toLowerCase())
-                .filter((value) => emailPattern.test(value))
+                .filter(isValidEmail)
         )];
 
         if (uniqueRecipients.length === 0) {
             return res.status(400).json({ message: "No valid recipient emails found" });
         }
 
-        const user = await User.findById(req.userId).select("+appPassword");
+        let maxRecipients;
+        try {
+            maxRecipients = getRecipientLimit();
+        } catch (error) {
+            console.error("Mail configuration error:", error.message);
+            return res.status(503).json({ message: "Email sending is not configured correctly" });
+        }
+
+        if (uniqueRecipients.length > maxRecipients) {
+            return res.status(400).json({
+                message: `A campaign can include at most ${maxRecipients} recipients`
+            });
+        }
+
+        let smtpConfig;
+        try {
+            smtpConfig = getSmtpConfig();
+        } catch (error) {
+            console.error("SMTP configuration error:", error.message);
+            return res.status(503).json({ message: "SMTP email sending is not configured correctly" });
+        }
+
+        if (!isValidSender(smtpConfig.from)) {
+            return res.status(503).json({
+                message: "MAIL_FROM must be a valid address, such as MultiMail <you@example.com>"
+            });
+        }
+
+        const user = await User.findById(req.userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-
-        const transporter = createTransporter(
-            user.email,
-            decrypt(user.appPassword)
-        );
 
         mailRecord = await Mail.create({
             userId: user._id,
@@ -53,28 +86,22 @@ const sendMail = async (req, res) => {
             status: "failed"
         });
 
-        // Sequential sending is intentionally simple for this learning project.
-        for (let index = 0; index < uniqueRecipients.length; index++) {
-            const recipient = uniqueRecipients[index];
-
+        transporter = createTransporter(smtpConfig);
+        await Promise.all(mailRecord.recipients.map(async (recipient) => {
             try {
                 await transporter.sendMail({
-                    from: user.email,
-                    to: recipient,
+                    from: smtpConfig.from,
+                    to: recipient.email,
                     subject: subject.trim(),
                     text: body
                 });
-
-                mailRecord.recipients[index].status = "sent";
+                recipient.status = "sent";
             } catch (error) {
-                mailRecord.recipients[index].status = "failed";
-                mailRecord.recipients[index].error = String(error.message).slice(0, 500);
-                console.error(`Delivery failed for ${recipient}:`, error.message);
+                recipient.status = "failed";
+                recipient.error = String(error.message).slice(0, 500);
+                console.error(`SMTP delivery failed for ${recipient.email}:`, error.message);
             }
-
-            // Persist progress so a server interruption does not erase completed results.
-            await mailRecord.save();
-        }
+        }));
 
         const sent = mailRecord.recipients.filter((item) => item.status === "sent").length;
         const failed = mailRecord.recipients.filter((item) => item.status === "failed").length;
@@ -84,6 +111,8 @@ const sendMail = async (req, res) => {
             : sent > 0 ? "partial" : "failed";
 
         await mailRecord.save();
+        transporter.close();
+        transporter = undefined;
 
         return res.status(200).json({
             message: "Email sending process completed",
@@ -97,12 +126,18 @@ const sendMail = async (req, res) => {
 
         if (mailRecord) {
             mailRecord.status = "failed";
-            await mailRecord.save().catch((saveError) => {
+            try {
+                await mailRecord.save();
+            } catch (saveError) {
                 console.error("Could not save mail status:", saveError.message);
-            });
+            }
         }
 
         return res.status(500).json({ message: "Email sending failed" });
+    } finally {
+        if (transporter) {
+            transporter.close();
+        }
     }
 };
 

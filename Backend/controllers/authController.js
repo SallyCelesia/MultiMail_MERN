@@ -1,183 +1,96 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const { encrypt, decrypt } = require("../utils/encryption");
+const { getSessionCookieOptions } = require("../utils/sessionCookie");
 
-const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const configuredUser = () => {
+    const username = process.env.AUTH_USERNAME?.trim().toLowerCase();
+    const password = process.env.AUTH_PASSWORD;
+    const jwtSecret = process.env.JWT_SECRET;
 
-const signup = async (req, res) => {
-    try {
-        const { email, password, appPassword } = req.body;
-
-        if (
-            typeof email !== "string" ||
-            typeof password !== "string" ||
-            typeof appPassword !== "string" ||
-            !email.trim() ||
-            !password ||
-            !appPassword.trim()
-        ) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        const normalizedEmail = email.trim().toLowerCase();
-
-        if (!validEmail.test(normalizedEmail)) {
-            return res.status(400).json({ message: "Enter a valid email address" });
-        }
-
-        if (password.length < 6 || !/\d/.test(password) || !/[^A-Za-z0-9\s]/.test(password)) {
-            return res.status(400).json({
-                message: "Password must be at least 6 characters and include a number and a symbol"
-            });
-        }
-
-        const existingUser = await User.findOne({ email: normalizedEmail });
-        if (existingUser) {
-            return res.status(409).json({ message: "Email already registered" });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 12);
-
-        await User.create({
-            email: normalizedEmail,
-            password: hashedPassword,
-            appPassword: encrypt(appPassword.replace(/\s/g, ""))
-        });
-
-        return res.status(201).json({ message: "Registration successful" });
-    } catch (error) {
-        if (error.code === 11000) {
-            return res.status(409).json({ message: "Email already registered" });
-        }
-        console.error("Signup error:", error.message);
-        return res.status(500).json({ message: "Registration failed" });
+    if (!username || !password || Buffer.byteLength(password, "utf8") > 72 || !jwtSecret || jwtSecret.length < 32) {
+        throw new Error("Set AUTH_USERNAME, AUTH_PASSWORD, and a JWT_SECRET of at least 32 characters");
     }
+
+    return { username, password, jwtSecret };
 };
 
-// const login = async (req, res) => {
-//     try {
-//         const { email, password, appPassword } = req.body;
-//         console.log("typee--",appPassword, typeof appPassword)
-//         if (
-//             typeof email !== "string" ||
-//             typeof password !== "string" ||
-//             typeof appPassword !== "string"
-//         ) {
-//             return res.status(400).json({ message: "Email and credentials are required" });
-//         }
+const getConfiguredUser = async (username, password) => {
+    let user = await User.findOne({ email: username }).select("+password");
 
-//         const user = await User.findOne({
-//             email: email.trim().toLowerCase()
-//         }).select("+appPassword");
+    if (!user) {
+        const passwordHash = await bcrypt.hash(password, 12);
+        try {
+            user = await User.create({ email: username, password: passwordHash });
+        } catch (error) {
+            if (error.code !== 11000) throw error;
+            user = await User.findOne({ email: username }).select("+password");
+        }
+    }
 
-//         if (!user) {
-//             return res.status(401).json({ message: "Invalid credentials" });
-//         }
+    if (!user) {
+        throw new Error("Could not load the configured user");
+    }
 
-//         const passwordMatch = await bcrypt.compare(password, user.password);
-//         const storedAppPassword = decrypt(user.appPassword);
-//         const submitted = Buffer.from(appPassword.replace(/\s/g, ""));
-//         const stored = Buffer.from(storedAppPassword);
+    if (!await bcrypt.compare(password, user.password)) {
+        user.password = await bcrypt.hash(password, 12);
+        await user.save();
+    }
 
-//         const appPasswordMatch =
-//             submitted.length === stored.length &&
-//             crypto.timingSafeEqual(submitted, stored);
+    return user;
+};
 
-//         if (!passwordMatch || !appPasswordMatch) {
-//             return res.status(401).json({ message: "Invalid credentials" });
-//         }
-
-//         const token = jwt.sign(
-//             { id: user._id.toString() },
-//             process.env.JWT_SECRET,
-//             { expiresIn: "1d" }
-//         );
-
-//         return res.status(200).json({
-//             message: "Login successful",
-//             token,
-//             email: user.email
-//         });
-//     } 
-//     catch (error) {
-//         console.error("Login error:", error.message);
-//         return res.status(500).json({ message: "Login failed" });
-//     }
-// };
 const login = async (req, res) => {
     try {
-        const { email, password, appPassword } = req.body;
-
-        console.log("Login request received:", email);
-
-        // Step 1: Find user
-        const user = await User.findOne({
-            email: email.trim().toLowerCase()
-        }).select("+appPassword");
-
-        if (!user) {
-            console.log("DEBUG: User not found");
-
-            return res.status(401).json({
-                message: "User not registered"
-            });
+        const { username, password } = req.body;
+        if (typeof username !== "string" || typeof password !== "string" || !username.trim() || !password) {
+            return res.status(400).json({ message: "Username and password are required" });
         }
 
-        console.log("DEBUG: User found");
-
-        // Step 2: Check account password
-        const passwordMatch = await bcrypt.compare(
-            password,
-            user.password
-        );
-
-        console.log("DEBUG: Password match:", passwordMatch);
-
-        // Step 3: Decrypt stored Gmail App Password
-        const storedAppPassword = decrypt(user.appPassword);
-
-        const enteredAppPassword = appPassword.replace(/\s/g, "");
-        const savedAppPassword = storedAppPassword.replace(/\s/g, "");
-
-        const appPasswordMatch =
-            enteredAppPassword === savedAppPassword;
-
-        console.log(
-            "DEBUG: App Password match:",
-            appPasswordMatch
-        );
-
-        if (!passwordMatch || !appPasswordMatch) {
-            return res.status(401).json({
-                message: "Password or App Password is incorrect"
-            });
+        if (Buffer.byteLength(password, "utf8") > 72) {
+            return res.status(400).json({ message: "Password must be at most 72 UTF-8 bytes" });
         }
 
-        // Step 4: Generate JWT
+        let credentials;
+        try {
+            credentials = configuredUser();
+        } catch (error) {
+            console.error("Authentication configuration error:", error.message);
+            return res.status(503).json({ message: "Authentication is not configured on the server" });
+        }
+
+        if (username.trim().toLowerCase() !== credentials.username) {
+            return res.status(401).json({ message: "Invalid username or password" });
+        }
+
+        const user = await getConfiguredUser(credentials.username, credentials.password);
+        if (!await bcrypt.compare(password, user.password)) {
+            return res.status(401).json({ message: "Invalid username or password" });
+        }
+
+        let cookieOptions;
+        try {
+            cookieOptions = getSessionCookieOptions();
+        } catch (error) {
+            console.error("Session cookie configuration error:", error.message);
+            return res.status(503).json({ message: "Session configuration is not valid" });
+        }
+
         const token = jwt.sign(
-            { id: user._id },
-            process.env.JWT_SECRET,
+            { id: user._id.toString() },
+            credentials.jwtSecret,
             { expiresIn: "1d" }
         );
-
-        console.log("DEBUG: JWT generated successfully");
+        res.cookie("token", token, cookieOptions);
 
         return res.status(200).json({
             message: "Login successful",
-            token,
-            email: user.email
+            username: user.email
         });
-
     } catch (error) {
-
-        console.error("LOGIN ERROR:", error);
-
-        return res.status(500).json({
-            message: "Login failed due to server error"
-        });
+        console.error("Login error:", error.message);
+        return res.status(500).json({ message: "Login failed" });
     }
 };
 
-module.exports = { signup, login };
+module.exports = { login };

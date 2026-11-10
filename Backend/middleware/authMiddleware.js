@@ -3,9 +3,16 @@ const jwt = require("jsonwebtoken");
 const authMiddleware = (req, res, next) => {
     try {
         const authorization = req.headers.authorization || "";
-        const [scheme, token] = authorization.split(" ");
+        const [scheme, bearerToken] = authorization.split(" ");
+        const tokenCookie = (req.headers.cookie || "")
+            .split(";")
+            .map((cookie) => cookie.trim())
+            .find((cookie) => cookie.startsWith("token="));
+        const token = tokenCookie ? tokenCookie.slice("token=".length) : (
+            scheme === "Bearer" ? bearerToken : ""
+        );
 
-        if (scheme !== "Bearer" || !token) {
+        if (!token) {
             return res.status(401).json({ message: "Authentication token required" });
         }
 

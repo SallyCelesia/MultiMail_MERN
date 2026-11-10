@@ -3,12 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAppContext } from "../AppContext";
 import PasswordInput from "../components/PasswordInput";
 
-const API = import.meta.env.VITE_API_BASE_URL || "https://multimail-mern.onrender.com";
+const API = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [appPassword, setAppPassword] = useState("");
   const location = useLocation();
   const [message, setMessage] = useState(location.state?.message || "");
   const [loading, setLoading] = useState(false);
@@ -27,8 +26,9 @@ export default function Login() {
     try {
       const response = await fetch(`${API}/api/auth/login`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, appPassword })
+        body: JSON.stringify({ username, password })
       });
       const data = await response.json();
 
@@ -39,8 +39,8 @@ export default function Login() {
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("email", data.email);
+      localStorage.removeItem("token");
+      localStorage.setItem("email", data.username);
       showToast("Welcome back!");
       navigate("/dashboard");
     } catch {
@@ -58,10 +58,10 @@ export default function Login() {
         <Link className="brand auth-brand" to="/login">MultiMail<span>.</span></Link>
         <p className="eyebrow">WELCOME BACK</p>
         <h1>Login to MultiMail</h1>
-        <p className="muted">Sign in with your registered Gmail credentials.</p>
+        <p className="muted">Sign in with the account configured for this app.</p>
 
-        <label htmlFor="email">Gmail address</label>
-        <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gmail.com" required />
+        <label htmlFor="username">Username</label>
+        <input id="username" type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
 
         <label htmlFor="password">Account password</label>
         <PasswordInput
@@ -72,18 +72,9 @@ export default function Login() {
           required
         />
 
-        <label htmlFor="appPassword">Gmail App Password</label>
-        <PasswordInput
-          id="appPassword"
-          value={appPassword}
-          onChange={(e) => setAppPassword(e.target.value)}
-          placeholder="Your Gmail App Password"
-          required
-        />
-
         <button className="full-button" type="submit" disabled={loading}>{loading ? "Signing in..." : "Login"}</button>
         {message && <p className="feedback" role="status">{message}</p>}
-        <p className="auth-switch">New to MultiMail? <Link to="/signup">Create account</Link></p>
+        <p className="auth-switch">Access is limited to the configured account.</p>
       </form>
     </main>
   );

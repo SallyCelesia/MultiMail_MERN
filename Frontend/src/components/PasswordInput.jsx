@@ -18,7 +18,7 @@ export default function PasswordInput({ id, value, onChange, placeholder, requir
         className="password-visibility"
         type="button"
         onClick={() => setVisible((current) => !current)}
-        aria-label={`${visible ? "Hide" : "Show"} ${id === "appPassword" ? "app password" : "password"} text`}
+        aria-label={`${visible ? "Hide" : "Show"} password text`}
         aria-pressed={visible}
       >
         {visible ? "Hide" : "Show"}

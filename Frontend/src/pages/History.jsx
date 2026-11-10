@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import MailCard from "../components/MailCard";
 import { useAppContext } from "../AppContext";
 
-const API = import.meta.env.VITE_API_BASE_URL || "https://multimail-mern.onrender.com";
+const API = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function History() {
   const [mails, setMails] = useState([]);
@@ -17,6 +17,7 @@ export default function History() {
     const fetchHistory = async () => {
       try {
         const response = await fetch(`${API}/api/mail/history`, {
+          credentials: "include",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         const data = await response.json();

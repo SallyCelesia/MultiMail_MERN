@@ -70,6 +70,7 @@ export default function Login() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Your account password"
           required
+          minLength={6}
         />
 
         <button className="full-button" type="submit" disabled={loading}>{loading ? "Signing in..." : "Login"}</button>

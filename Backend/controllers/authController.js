@@ -4,13 +4,12 @@ const jwt = require("jsonwebtoken");
 const { getSessionCookieOptions } = require("../utils/sessionCookie");
 
 const configuredUser = () => {
-    // const username = process.env.AUTH_USERNAME?.trim().toLowerCase();
-    const username = 'sallycelesia@gmail.com';
-    const password = 'MyP1sswor4';
+    const username = process.env.AUTH_USERNAME?.trim().toLowerCase();
+    const password = process.env.AUTH_PASSWORD;
     const jwtSecret = process.env.JWT_SECRET;
 
-    if (!username || !password || Buffer.byteLength(password, "utf8") > 72 || !jwtSecret || jwtSecret.length < 32) {
-        throw new Error("Set AUTH_USERNAME, AUTH_PASSWORD, and a JWT_SECRET of at least 32 characters");
+    if (!username || !password || password.length < 6 || Buffer.byteLength(password, "utf8") > 72 || !jwtSecret || jwtSecret.length < 32) {
+        throw new Error("Set AUTH_USERNAME, an AUTH_PASSWORD of at least 6 characters and at most 72 UTF-8 bytes, and a JWT_SECRET of at least 32 characters");
     }
 
     return { username, password, jwtSecret };
@@ -46,6 +45,10 @@ const login = async (req, res) => {
         const { username, password } = req.body;
         if (typeof username !== "string" || typeof password !== "string" || !username.trim() || !password) {
             return res.status(400).json({ message: "Username and password are required" });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters" });
         }
 
         if (Buffer.byteLength(password, "utf8") > 72) {

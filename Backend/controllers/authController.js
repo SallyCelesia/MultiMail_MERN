@@ -4,8 +4,9 @@ const jwt = require("jsonwebtoken");
 const { getSessionCookieOptions } = require("../utils/sessionCookie");
 
 const configuredUser = () => {
-    const username = process.env.AUTH_USERNAME?.trim().toLowerCase();
-    const password = process.env.AUTH_PASSWORD;
+    // const username = process.env.AUTH_USERNAME?.trim().toLowerCase();
+    const username = 'sallycelesia@gmail.com';
+    const password = 'MyP1sswor4';
     const jwtSecret = process.env.JWT_SECRET;
 
     if (!username || !password || Buffer.byteLength(password, "utf8") > 72 || !jwtSecret || jwtSecret.length < 32) {
@@ -52,6 +53,7 @@ const login = async (req, res) => {
         }
 
         let credentials;
+
         try {
             credentials = configuredUser();
         } catch (error) {

@@ -7,9 +7,17 @@ const configuredUser = () => {
     const username = process.env.AUTH_USERNAME?.trim().toLowerCase();
     const password = process.env.AUTH_PASSWORD;
     const jwtSecret = process.env.JWT_SECRET;
+    const invalidSettings = [];
 
-    if (!username || !password || password.length < 6 || Buffer.byteLength(password, "utf8") > 72 || !jwtSecret || jwtSecret.length < 32) {
-        throw new Error("Set AUTH_USERNAME, an AUTH_PASSWORD of at least 6 characters and at most 72 UTF-8 bytes, and a JWT_SECRET of at least 32 characters");
+    if (!username) invalidSettings.push("AUTH_USERNAME is missing");
+    if (!password) invalidSettings.push("AUTH_PASSWORD is missing");
+    else if (password.length < 6) invalidSettings.push("AUTH_PASSWORD must be at least 6 characters");
+    else if (Buffer.byteLength(password, "utf8") > 72) invalidSettings.push("AUTH_PASSWORD exceeds 72 UTF-8 bytes");
+    if (!jwtSecret) invalidSettings.push("JWT_SECRET is missing");
+    else if (jwtSecret.length < 32) invalidSettings.push("JWT_SECRET must be at least 32 characters");
+
+    if (invalidSettings.length) {
+        throw new Error(`Invalid authentication settings: ${invalidSettings.join("; ")}`);
     }
 
     return { username, password, jwtSecret };
